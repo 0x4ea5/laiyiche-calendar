@@ -15,6 +15,13 @@
       "when": 1791251101602,
       "tag": "0001_sticky_random",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791252168627,
+      "tag": "0002_glorious_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }
