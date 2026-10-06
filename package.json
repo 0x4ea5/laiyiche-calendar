@@ -9,6 +9,10 @@
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.0",
-    "drizzle-orm": "^0.44.0"
+    "drizzle-orm": "^0.44.0",
+    "esbuild": "^0.25.12"
+  },
+  "dependencies": {
+    "javascript-lp-solver": "^0.4.24"
   }
 }
