@@ -2,3 +2,13 @@ dist/
 site.tar.gz
 
 node_modules/
+
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.tar.gz
+.sites-runtime/
