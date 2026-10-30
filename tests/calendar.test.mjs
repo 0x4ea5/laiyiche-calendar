@@ -54,11 +54,15 @@ test('shows saved player totals including self and updates counts after others c
  assert.match(html,/border:3px dashed #c23883/);assert.match(html,/\.selection-count/);
 });
 
-test('pending dates sort by preference before availability count, and preferred players appear first',async()=>{
+test('pending dates prioritize total attendance; only equal totals compare preferences',async()=>{
  const a='2026-11-01',b='2026-11-02',all=[player('ordinary',[a,b]),player('extra',[a]),player('extra-two',[a]),player('priority',[b],[b])];
- const ui=await page(all);const boxes=ui.get('matches').children.filter(e=>e.className==='recommend');
- assert.match(boxes[0].children[0].textContent,/2026-11-02.*1 人优先/);assert.equal(boxes[0].children[1].textContent,'priority（优先）、ordinary');
- assert.match(boxes[1].children[0].textContent,/2026-11-01.*0 人优先/);
+ const ui=await page(all);let boxes=ui.get('matches').children.filter(e=>e.className==='recommend');
+ assert.match(boxes[0].children[0].textContent,/2026-11-01.*3 人有空.*0 人优先/);
+ assert.match(boxes[1].children[0].textContent,/2026-11-02.*2 人有空.*1 人优先/);
+ assert.equal(boxes[1].children[1].textContent,'priority（优先）、ordinary');
+ ui.state.players=all.filter(p=>p.id!=='extra-two');await ui.refresh();boxes=ui.get('matches').children.filter(e=>e.className==='recommend');
+ assert.match(boxes[0].children[0].textContent,/2026-11-02.*2 人有空.*1 人优先/);
+ assert.match(boxes[1].children[0].textContent,/2026-11-01.*2 人有空.*0 人优先/);
 });
 test('full-car display prioritizes preferred dates and players without changing assignments',async()=>{
  const a='2026-11-01',b='2026-11-02',one=[player('plain-a',[a]),player('preferred-a',[a],[a])],two=[player('plain-b',[b]),player('preferred-b',[b],[b]),player('preferred-c',[b],[b])];
