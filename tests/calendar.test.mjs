@@ -11,10 +11,10 @@ class Element {
  setAttribute(key,value){this.attributes[key]=String(value)}
 }
 class FixedDate extends Date {constructor(...args){super(...(args.length?args:[2026,9,30,12]))}}
-async function page(initialPlayers=[],self=null){
+async function page(initialPlayers=[],self=null,recommendation=null){
  const elements=new Map(),requests=[],state={players:initialPlayers};
  const get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id)};
- const context=vm.createContext({document:{getElementById:get,createElement:tag=>new Element(tag)},location:{href:'https://example.com/?car='+'a'.repeat(32)},URL,Date:FixedDate,crypto,localStorage:{getItem:()=>self?JSON.stringify({...self,token:'my-token'}):null},fetch:async(url,options={})=>{requests.push({url,method:options.method||'GET'});const data=url.startsWith('/api/me')?self:url.startsWith('/api/settings')?{groupSize:6}:state.players;return {ok:true,json:async()=>JSON.parse(JSON.stringify(data))}},recommend:()=>({groups:[],assigned:[],score:0,targetCars:0}),setInterval(){}});
+ const context=vm.createContext({document:{getElementById:get,createElement:tag=>new Element(tag)},location:{href:'https://example.com/?car='+'a'.repeat(32)},URL,Date:FixedDate,crypto,localStorage:{getItem:()=>self?JSON.stringify({...self,token:'my-token'}):null},fetch:async(url,options={})=>{requests.push({url,method:options.method||'GET'});const data=url.startsWith('/api/me')?self:url.startsWith('/api/settings')?{groupSize:6}:state.players;return {ok:true,json:async()=>JSON.parse(JSON.stringify(data))}},recommend:()=>recommendation||({groups:[],assigned:[],score:0,targetCars:0}),setInterval(){}});
  vm.runInContext(script,context);await new Promise(resolve=>setImmediate(resolve));
  const button=date=>get('calendar').children.find(e=>e.tag==='button'&&e.attributes['aria-label']?.startsWith(date));
  return {get,button,state,requests,refresh:()=>vm.runInContext('refresh()',context)};
@@ -52,4 +52,18 @@ test('shows saved player totals including self and updates counts after others c
  ui.state.players=[self];await ui.refresh();assert.equal(count(),'1人');assert.ok(!ui.button(date).className.includes('others-selected'));
  ui.state.players=[];await ui.refresh();assert.equal(count(),undefined);
  assert.match(html,/border:3px dashed #c23883/);assert.match(html,/\.selection-count/);
+});
+
+test('pending dates sort by preference before availability count, and preferred players appear first',async()=>{
+ const a='2026-11-01',b='2026-11-02',all=[player('ordinary',[a,b]),player('extra',[a]),player('extra-two',[a]),player('priority',[b],[b])];
+ const ui=await page(all);const boxes=ui.get('matches').children.filter(e=>e.className==='recommend');
+ assert.match(boxes[0].children[0].textContent,/2026-11-02.*1 人优先/);assert.equal(boxes[0].children[1].textContent,'priority（优先）、ordinary');
+ assert.match(boxes[1].children[0].textContent,/2026-11-01.*0 人优先/);
+});
+test('full-car display prioritizes preferred dates and players without changing assignments',async()=>{
+ const a='2026-11-01',b='2026-11-02',one=[player('plain-a',[a]),player('preferred-a',[a],[a])],two=[player('plain-b',[b]),player('preferred-b',[b],[b]),player('preferred-c',[b],[b])];
+ const plan={groups:[{date:a,players:one},{date:b,players:two}],assigned:[...one,...two].map(p=>p.id),score:3,targetCars:2};
+ const before=JSON.stringify(plan),ui=await page([...one,...two],null,plan),boxes=ui.get('matches').children.filter(e=>e.className==='recommend');
+ assert.match(boxes[0].children[0].textContent,/2026-11-02.*2 人优先/);assert.equal(boxes[0].children[1].textContent,'preferred-b（优先）、preferred-c（优先）、plain-b');
+ assert.match(boxes[1].children[0].textContent,/2026-11-01.*1 人优先/);assert.equal(JSON.stringify(plan),before);
 });
