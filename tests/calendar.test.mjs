@@ -42,3 +42,14 @@ test('refresh updates dotted dates without jumping back after month navigation o
  ui.state.players=[];await ui.refresh();assert.equal(ui.get('range').textContent,'2026 年 12 月');assert.ok(!ui.button('2026-12-04').className.includes('others-selected'));
  assert.ok(ui.requests.every(r=>r.method==='GET'));
 });
+
+test('shows saved player totals including self and updates counts after others change selections',async()=>{
+ const date='2026-11-03',self=player('self',[date],[date]);
+ const ui=await page([self,player('other',[date]),player('third',[date])],self);
+ const count=()=>ui.button(date).children.find(e=>e.className==='selection-count')?.textContent;
+ assert.equal(count(),'3人');assert.match(ui.button(date).attributes['aria-label'],/共 3 人已选/);
+ assert.ok(ui.button(date).className.includes('preferred'));assert.ok(ui.button(date).className.includes('others-selected'));
+ ui.state.players=[self];await ui.refresh();assert.equal(count(),'1人');assert.ok(!ui.button(date).className.includes('others-selected'));
+ ui.state.players=[];await ui.refresh();assert.equal(count(),undefined);
+ assert.match(html,/border:3px dashed #c23883/);assert.match(html,/\.selection-count/);
+});
